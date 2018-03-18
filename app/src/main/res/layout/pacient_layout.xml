@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:tools="http://schemas.android.com/tools"
+                android:id="@+id/rel_layout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                tools:context="com.vgtu.ekg.PacientActivity">
+
+    <EditText
+        android:id="@+id/editPacient"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="textPersonName"
+        android:ems="10" >
+    </EditText>
+
+    <ListView
+        android:id="@+id/listView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/editPacient">
+    </ListView>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="1dp"
+        android:background="@android:color/darker_gray"
+        android:orientation="vertical">
+
+
+
+
+
+        <TextView
+            android:id="@+id/RR_INTERVAL_TEXT"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="R-R интервал:"/>
+
+        <TextView
+            android:id="@+id/RR_INTERVAL_TEXT1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+        <TextView
+            android:id="@+id/HEART_AGE_5MIN_TEXT"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Возраст сердца за 5 минут:" />
+        <TextView
+            android:id="@+id/HEART_AGE_5MIN_TEXT1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=" " />
+
+        <TextView
+            android:id="@+id/HEART_AGE_TEXT"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Возраст сердца:" />
+
+        <TextView
+            android:id="@+id/HEART_AGE_TEXT1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Textview" />
+
+
+
+
+        <Button
+            android:id="@+id/button_close"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Закрыть"/>
+
+    </LinearLayout>
+
+</RelativeLayout>

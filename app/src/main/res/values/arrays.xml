@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="graph_style">
+        <item>Белый</item>
+        <item>Черный</item>
+    </string-array>
+
+    <string-array name="curve_style">
+
+        <item>Синий</item>
+        <item>Зеленый</item>
+        <item>Красный</item>
+
+    </string-array>
+</resources>

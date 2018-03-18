@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory
+        android:title="Управление пациентами">
+
+        <EditTextPreference
+            android:key="@string/new_pacient"
+            android:title="Новый пациент"
+            android:summary="Регистрация нового пациента"
+            android:defaultValue=" "
+            android:dialogTitle="Введите имя пациента" />
+
+        <CheckBoxPreference
+            android:key="@string/pacient_directory"
+            android:title="Создавать папку для каждого пациента"
+            android:defaultValue="true"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="Параметры отображения">
+
+
+
+            <ListPreference
+                android:key="@string/pref_mesh"
+                android:title="Цвет кривой графика"
+                android:summary="Устанавливает цвет для кривой графика"
+                android:defaultValue="1"
+                android:entries="@array/curve_style"
+                android:entryValues="@array/curve_style"
+                android:dialogTitle="Выберите цвет для кривой" />
+
+
+        <ListPreference
+            android:key="@string/pref_style"
+            android:title="Цвет фона графика"
+            android:summary="Устанавливает фон для области графика"
+            android:defaultValue="1"
+            android:entries="@array/graph_style"
+            android:entryValues="@array/graph_style"
+            android:dialogTitle="Выберите цвет для фона" />
+
+        <CheckBoxPreference
+            android:key="@string/pref_curve"
+            android:title="Отображать координатную сетку"
+            android:summary="Отображать на графике координатную сетку"
+            android:defaultValue="true"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="Информация для пользователя">
+
+        <PreferenceScreen
+            android:key="О программе"
+            android:title="О программе"
+            android:summary="Информация о программном обеспечении">
+            <PreferenceScreen
+                android:key="О программе"
+                android:title="О программе"
+                android:summary="">
+
+
+            </PreferenceScreen>
+
+        </PreferenceScreen>
+
+        <PreferenceScreen
+            android:key="Руководство пользовател"
+            android:title="Руководство пользователя"
+            android:summary="">
+
+            <PreferenceScreen
+                android:key="Руководство пользовател"
+                android:title="Руководство пользователя"
+                android:summary="">
+
+
+            </PreferenceScreen>
+        </PreferenceScreen>
+    </PreferenceCategory>
+</PreferenceScreen>
