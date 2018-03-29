@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -25,7 +26,6 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,12 +34,10 @@ import com.androidplot.xy.AdvancedLineAndPointRenderer;
 import com.androidplot.xy.BoundaryMode;
 import com.androidplot.xy.XYGraphWidget;
 import com.androidplot.xy.XYPlot;
-import com.androidplot.xy.XYSeries;
 import com.neurosky.thinkgear.TGDevice;
+import com.vgtu.ekg.diagram.ECGModel;
 import com.vgtu.ekg.util.PermissionUtil;
 import com.vgtu.ekg.view.TimerTextView;
-
-import org.achartengine.GraphicalView;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -50,6 +48,7 @@ import java.text.Format;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -83,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
 	private TimerTextView recordTime;
 	//    private int time = 0;
 	public boolean new_pacient_directory = true;
-	public int bt_connected = 1;
+	public boolean bt_connected = false;
 	int heartRate_vs = 0;
 	int subjectContactQuality_last;
 	int subjectContactQuality_cnt;
@@ -92,9 +91,6 @@ public class MainActivity extends AppCompatActivity {
 //    TextView tv_Title;
 //    EditText et_age;
 	int heartRate;
-	int rr_interval;
-	double RawValue;
-	int Raw_Value;
 	//    byte poorSignal;
 //    public int average_heartrate = 0;
 //    int len = 0;
@@ -102,32 +98,20 @@ public class MainActivity extends AppCompatActivity {
 //    int tem_sum = 0;//sum of heart rate difference
 //    int value = 0;//new point
 //    int tem_value = 0;
-	private GraphicalView chart;
-	private LinearLayout linear;
-	//private XYSeries hseries;
-	public String formattedDate;
 
 	private boolean isRecording = false;
 
-	//Раздел рисования графика
-	//XYMultipleSeriesRenderer renderer = new XYMultipleSeriesRenderer();
-	//XYSeriesRenderer dxyrenderer = new XYSeriesRenderer(), hxyrenderer;
-	//Создание хранилища данных
-	//XYMultipleSeriesDataset dataset = new XYMultipleSeriesDataset();
-	//private int addX = -1, addY;
-	int[] xv = new int[5000];
-	int[] yv = new int[5000];
-
-
+	//очереди значений для записи в файлы
 	private Queue<Integer> unwritedRRvalues = new ConcurrentLinkedQueue<>();
 	private Queue<Integer> unwritedRawValues = new ConcurrentLinkedQueue<>();
 
+	//касательно отображения графика
+	private static final int PLOT_X_COUNT = 4000;
 	private XYPlot xyPlotView;
-	/**
-	 * Uses a separate thread to modulate redraw frequency.
-	 */
-	private Redrawer redrawer;
-	ECGModel ecgSeries;
+	private Redrawer redrawer;//Uses a separate thread to modulate redraw frequency.
+	private ECGModel ecgSeries;
+	private long lastUpdateTime = 0;
+	private long currentTime = 0;
 
 	//Начальные установки для графика
 	@Override
@@ -144,30 +128,6 @@ public class MainActivity extends AppCompatActivity {
 		String resName = "n" + intent.getIntExtra("head", 0);
 		Log.i("name", resName);
 
-/*		//setup the draw section
-		renderer.setPointSize(3);
-		renderer.setZoomButtonsVisible(true);
-		//renderer.setShowGrid(show_grid);
-		renderer.setXAxisMax(500);
-		renderer.setXAxisMin(0);
-		renderer.setYAxisMax(5000);
-		renderer.setYAxisMin(-1400);
-		renderer.setXLabels(10);
-		renderer.setYLabels(10);
-		renderer.setAxesColor(Color.WHITE);
-
-		//set up heart rate
-		hxyrenderer = new XYSeriesRenderer();
-		//hxyrenderer.setColor(Color.BLUE);
-		hxyrenderer.setPointStyle(PointStyle.DIAMOND);
-		renderer.addSeriesRenderer(hxyrenderer);
-		hseries = new XYSeries("RR интервал");
-		dataset.addSeries(hseries);*/
-
-		//setup the draw in screen
-		//chart = ChartFactory.getLineChartView(MainActivity.this, dataset, renderer);
-
-		//((ViewGroup) findViewById(android.R.id.content)).addView(chart, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 		xyPlotView = findViewById(R.id.plot);
 		initPlot();
 	}
@@ -175,15 +135,16 @@ public class MainActivity extends AppCompatActivity {
 	@Override
 	protected void onStop() {
 		super.onStop();
-		redrawer.pause();
+		redrawer.pause();//останавливаем отрисовку
 	}
 
 	@Override
 	protected void onStart() {
 		super.onStart();
-		redrawer.start();
+		redrawer.start();//возобновляем отрисовку
 	}
 
+	//настройка отрисовки графика
 	private void initPlot() {
 		ecgSeries = new ECGModel(4000);
 		xyPlotView.setRangeBoundaries(-1000, 1500, BoundaryMode.FIXED);
@@ -238,42 +199,18 @@ public class MainActivity extends AppCompatActivity {
 		new_pacient_directory = prefs.getBoolean(getString(R.string.pacient_directory), true);
 	}
 
-	// Обновление графика и его сдвиг
+	// Обновление графика
 	public void updateChart(int newValue) {
-		/*dataset.removeSeries(series);
-		int length = series.getItemCount();
-		int addX;
-		int addY;
-		//Длина окна графика по оси Х
-		if (length >= 500) {
-			for (int i = 0; i < length - 1; i++) {
-				xv[i] = (int) series.getX(i);
-				yv[i] = (int) series.getY(i + 1);
-			}
-			series.clear();
-			addX = length - 1;
-			addY = newValue;
-			for (int j = 0; j < length - 1; j++) {
-				series.add(xv[j], yv[j]);
-			}
-			series.add(addX, addY);
-			dataset.addSeries(series);
-		} else {
-			addX = length;
-			addY = newValue;
-			series.add(addX, addY);
-			dataset.addSeries(series);
-		}*/
-
 		ecgSeries.addNewValue(newValue);
 
+		//на случай, если график будет тормозить.
+		//нужно расскомментировать этот блок и закомментировать строку после блока.
 /*		currentTime = System.currentTimeMillis();
 		if (lastUpdateTime == 0 || currentTime - lastUpdateTime > 25) {
 			lastUpdateTime = currentTime;
-			//chart.invalidate();
+			xyPlotView.getRenderer(AdvancedLineAndPointRenderer.class).setLatestIndex(ecgSeries.getLatestIndex());
 		}*/
 		xyPlotView.getRenderer(AdvancedLineAndPointRenderer.class).setLatestIndex(ecgSeries.getLatestIndex());
-
 	}
 
 	@Override
@@ -283,8 +220,6 @@ public class MainActivity extends AppCompatActivity {
 			setSettingsParams();
 		}
 	}
-
-	//Раздел рисования графика
 
 	//Верхняя строка состояния
 	private void InitActionBar() {
@@ -306,29 +241,6 @@ public class MainActivity extends AppCompatActivity {
 		btnMinimize.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-			    /*LayoutInflater layoutInflater = (LayoutInflater) getBaseContext().getSystemService(LAYOUT_INFLATER_SERVICE);
-
-                View popupView = layoutInflater.inflate(R.layout.popup, null);
-
-                final PopupWindow popupWindow = new PopupWindow(popupView,
-                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-
-
-
-                Button dismissButton = (Button) popupView.findViewById(R.id.button_close);
-                tv_HeartAge = (TextView)popupView.findViewById(R.id.HEART_AGE_TEXT1);
-                tv_HeartAge.setText("");
-                tv_5minHeartAge = (TextView)popupView.findViewById(R.id.HEART_AGE_5MIN_TEXT1);
-                tv_5minHeartAge.setText("");
-                tv_rrInterval = (TextView)popupView.findViewById(R.id.RR_INTERVAL_TEXT1);
-                tv_rrInterval.setText( "" );
-                dismissButton.setOnClickListener(new Button.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        popupWindow.dismiss();
-                    }
-                });
-                popupWindow.showAsDropDown(btnMinimize, 50, -30);*/
 			}
 		});
 
@@ -344,20 +256,12 @@ public class MainActivity extends AppCompatActivity {
 		btnBluetooth.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				switch (bt_connected) {
-					case 1:
-						tgDevice = new TGDevice(bluetoothAdapter, handler);
-						tgDevice.connect(true);
-						bt_connected = 2;
-						btnBluetooth.setImageResource(R.drawable.ic_connect_bt);
-						break;
-					case 2:
-						tgDevice.close();
-						bt_connected = 1;
-						btnBluetooth.setImageResource(R.drawable.ic_disconnect_bt);
-						break;
+				if (bt_connected) {
+					tgDevice.close();
+				} else {
+					tgDevice = new TGDevice(bluetoothAdapter, handler);
+					tgDevice.connect(true);
 				}
-
 			}
 		});
 
@@ -366,9 +270,7 @@ public class MainActivity extends AppCompatActivity {
 		btnSettings.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-
-				Intent intent = new Intent();
-				intent.setClass(MainActivity.this, SettingActivity.class);
+				Intent intent = new Intent(MainActivity.this, SettingActivity.class);
 				startActivityForResult(intent, RC_SETTINGS);
 			}
 		});
@@ -393,17 +295,30 @@ public class MainActivity extends AppCompatActivity {
 
 	}
 
+	private void setBluetoothState(boolean isConnected) {
+		btnBluetooth.setImageResource(isConnected
+				? R.drawable.ic_connect_bt
+				: R.drawable.ic_disconnect_bt);
+		bt_connected = isConnected;
+		if (!isConnected) {
+			heart_Rate.setText("");
+			mAnimationDrawable.stop();
+			stopRecording();
+		}
+	}
+
 	private void tryStartRecording() {
 		if (!isRecording) {
 			if (rec_per) {
-				if (PermissionUtil.hasWriteExtStoragePermission(this)) {
+				if (Build.VERSION.SDK_INT < 23
+						|| PermissionUtil.hasWriteExtStoragePermission(this)) {
 					startRecording();
 				} else {
 					requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CODE_STORAGE);
 				}
 			} else {
 				Toast.makeText(getApplicationContext(), "Подключите устройство!",
-						Toast.LENGTH_LONG).show();
+						Toast.LENGTH_SHORT).show();
 			}
 		}
 	}
@@ -428,20 +343,18 @@ public class MainActivity extends AppCompatActivity {
 
 	// Включение записи в файл
 	private void startRecording() {
-		ecgSeries = new ECGModel(2000);
-
-		isRecording = true;
 		unwritedRRvalues.clear();
 		unwritedRawValues.clear();
+		isRecording = true;
 		recordTime.setRecording(true);
-		@SuppressLint("SimpleDateFormat") SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-		formattedDate = df.format(new Date(System.currentTimeMillis()));
 		Thread fileWriterThread = new Thread() {
 			public void run() {
 				String folderName = new_pacient_directory && !TextUtils.isEmpty(mCurFileName) ? mCurFileName : "default";
 				String path = Environment.getExternalStorageDirectory() + File.separator + "ECG data" + File.separator + folderName;
 				File folder = new File(path);
 				folder.mkdirs();
+				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.US);
+				String formattedDate = df.format(new Date(System.currentTimeMillis()));
 				File rrFile = new File(folder, formattedDate + "_ritm.rtm");
 				File rawFile = new File(folder, formattedDate + "_kardio.krd");
 				BufferedOutputStream rrBos = null;
@@ -486,10 +399,12 @@ public class MainActivity extends AppCompatActivity {
 	// Выключение записи в файл
 	private void stopRecording() {
 		if (isRecording) {
-			Toast.makeText(getApplicationContext(), "Запись завершена!", Toast.LENGTH_LONG).show();
+			Toast.makeText(getApplicationContext(), "Запись завершена!", Toast.LENGTH_SHORT).show();
+			recordTime.setRecording(false);
+		} else {
+			recordTime.clear();
 		}
 		isRecording = false;
-		recordTime.setRecording(false);
 	}
 
 	@Override
@@ -500,9 +415,6 @@ public class MainActivity extends AppCompatActivity {
 		}
 	}
 
-
-	private long lastUpdateTime = 0;
-	private long currentTime = 0;
 	//Прием сообщений от TGDevice
 	@SuppressLint("HandlerLeak")
 	private final Handler handler = new Handler() {
@@ -516,7 +428,7 @@ public class MainActivity extends AppCompatActivity {
         		 * time to set the configurations we need
         		 */
 					//tv.append("Model Identified\n");
-					Toast.makeText(MainActivity.this, "Модель идентифицирована", Toast.LENGTH_LONG).show();
+					Toast.makeText(MainActivity.this, "Модель идентифицирована", Toast.LENGTH_SHORT).show();
 					tgDevice.setBlinkDetectionEnabled(true); // not allowed on EKG hardware, here to show the override message
 					tgDevice.setRespirationRateEnable(true);
 					break;
@@ -526,22 +438,24 @@ public class MainActivity extends AppCompatActivity {
 						case TGDevice.STATE_IDLE:
 							break;
 						case TGDevice.STATE_CONNECTING:
-							Toast.makeText(MainActivity.this, "Установка соединения", Toast.LENGTH_LONG).show();
+							Toast.makeText(MainActivity.this, "Установка соединения", Toast.LENGTH_SHORT).show();
 							break;
 						case TGDevice.STATE_CONNECTED:
-							Toast.makeText(MainActivity.this, "Соединение установлено", Toast.LENGTH_LONG).show();
+							Toast.makeText(MainActivity.this, "Соединение установлено", Toast.LENGTH_SHORT).show();
 							tgDevice.start();
 							tgDevice.pass_seconds = 15;
+							setBluetoothState(true);
 							break;
 						case TGDevice.STATE_NOT_FOUND:
-							Toast.makeText(MainActivity.this, "Не найдено устройство", Toast.LENGTH_LONG).show();
-							Toast.makeText(MainActivity.this, "Должно быть сопряжено одно Bluetooth устройство", Toast.LENGTH_LONG).show();
+							Toast.makeText(MainActivity.this, "Не найдено устройство. Должно быть сопряжено одно Bluetooth устройство", Toast.LENGTH_SHORT).show();
+							setBluetoothState(false);
 							break;
-					    /*case TGDevice.STATE_NOT_PAIRED:
-	                	tv.append("not paired\n");
+						/*case TGDevice.STATE_NOT_PAIRED:
+			        	tv.append("not paired\n");
 	                	break;*/
 						case TGDevice.STATE_DISCONNECTED:
-							Toast.makeText(MainActivity.this, "Соединение разорвано", Toast.LENGTH_LONG).show();
+							setBluetoothState(false);
+							Toast.makeText(MainActivity.this, "Соединение разорвано", Toast.LENGTH_SHORT).show();
 					}
 					break;
 
@@ -550,12 +464,12 @@ public class MainActivity extends AppCompatActivity {
             	   /* Вывод на экран сообщения о качестве сигнала каждые 90 секунд */
 					if (subjectContactQuality_cnt >= 90 || msg.arg1 != subjectContactQuality_last) {
 						if (msg.arg1 == 200) { //200 is for BMD
-							Toast.makeText(MainActivity.this, "Сигнал ЭКГ хороший", Toast.LENGTH_LONG).show();
+							Toast.makeText(MainActivity.this, "Сигнал ЭКГ хороший", Toast.LENGTH_SHORT).show();
 							rec_per = true;
 							mAnimationDrawable.start();
 						} else {
 							mAnimationDrawable.stop();
-							Toast.makeText(MainActivity.this, "Нет сигнала ЭКГ! Датчик надо закрепить на груди.", Toast.LENGTH_LONG).show();
+							Toast.makeText(MainActivity.this, "Нет сигнала ЭКГ! Датчик надо закрепить на груди.", Toast.LENGTH_SHORT).show();
 						}
 						subjectContactQuality_cnt = 0;
 						subjectContactQuality_last = msg.arg1;
@@ -566,19 +480,18 @@ public class MainActivity extends AppCompatActivity {
 
 				// Не обработанные данные ЭКГ - RAW_DATA
 				case TGDevice.MSG_RAW_DATA:
-					RawValue = (msg.arg1 * 18.3) / 128;
-					Raw_Value = (int) RawValue;
+					int Raw_Value = (int) ((msg.arg1 * 18.3) / 128);
 					if (isRecording) {
 						unwritedRawValues.add(Raw_Value);
 					}
-					Log.d("TAG ", "RAW " + Raw_Value);
+					//Log.d("TAG ", "RAW " + Raw_Value);
 					updateChart(Raw_Value);
 					break;
 
 				// RR интервалы
 				case TGDevice.MSG_EKG_RRINT:
 					//  if(buff==0 || Math.abs(buff-msg.arg1)<100){buff = msg.arg1; rr_interval = buff; updateChart(hseries,rr_interval);}else{rr_interval = 0; artef++;}
-					//  if(artef > 5){Toast.makeText(MainActivity.this, "Большое количество артефактов",Toast.LENGTH_LONG).show(); artef =0;}
+					//  if(artef > 5){Toast.makeText(MainActivity.this, "Большое количество артефактов",Toast.LENGTH_SHORT).show(); artef =0;}
 
 					// rr_interval = msg.arg1;
 					// updateChart(hseries,msg.arg1);
@@ -610,25 +523,25 @@ public class MainActivity extends AppCompatActivity {
                             updateChart(hseries,msg.arg1);
                         }
                       }*/
-					rr_interval = msg.arg1;
+					int rr_interval = msg.arg1;
 					if (rr_interval != 0 && isRecording) {
 						unwritedRRvalues.add(rr_interval);
 					}
-					//updateChart(hseries, msg.arg1);
+					//updateChart(rr_interval);
 					break;
 
 				// Обработанные данные ЭКГ
 				case TGDevice.MSG_RAW_MULTI:
-					Log.d("TAG LOG", "MSG_RAW_MULTI" + msg);
+					//Log.d("TAG LOG", "MSG_RAW_MULTI" + msg);
 					break;
 				case TGDevice.MSG_RAW_MULTI_NEW:
-					Log.d("TAG LOG", "MSG_RAW_MULTI_NEW" + msg);
+					//Log.d("TAG LOG", "MSG_RAW_MULTI_NEW" + msg);
 					break;
 
 				// Пульс
 				case TGDevice.MSG_HEART_RATE:
 					heartRate = msg.arg1;
-					heart_Rate.setText(msg.arg1 + "");
+					heart_Rate.setText(String.valueOf(msg.arg1 ));
 					//updateChart(hseries,msg.arg1);
 					break;
 
@@ -757,61 +670,6 @@ public class MainActivity extends AppCompatActivity {
 			int alpha = (int) (255 - (offset * scale));
 			getLinePaint().setAlpha(alpha > 0 ? alpha : 0);
 			return getLinePaint();
-		}
-	}
-
-	/**
-	 * Primitive simulation of some kind of signal.  For this example,
-	 * we'll pretend its an ecg.  This class represents the data as a circular buffer;
-	 * data is added sequentially from left to right.  When the end of the buffer is reached,
-	 * i is reset back to 0 and simulated sampling continues.
-	 */
-	public static class ECGModel implements XYSeries {
-
-		private final int[] data;
-		private int latestIndex = -1;
-
-		/**
-		 * @param size Sample size contained within this model
-		 */
-		public ECGModel(int size) {
-			data = new int[size];
-			for (int i = 0; i < data.length; i++) {
-				data[i] = 0;
-			}
-		}
-
-		public void addNewValue(int value) {
-			latestIndex++;
-			if (latestIndex >= data.length) {
-				latestIndex = 0;
-			}
-			// insert a random sample:
-			data[latestIndex] = value;
-		}
-
-		public int getLatestIndex() {
-			return latestIndex;
-		}
-
-		@Override
-		public int size() {
-			return data.length;
-		}
-
-		@Override
-		public Number getX(int index) {
-			return index;
-		}
-
-		@Override
-		public Number getY(int index) {
-			return data[index];
-		}
-
-		@Override
-		public String getTitle() {
-			return "Signal";
 		}
 	}
 

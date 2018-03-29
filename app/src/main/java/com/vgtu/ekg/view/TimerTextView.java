@@ -42,6 +42,12 @@ public class TimerTextView extends android.support.v7.widget.AppCompatTextView {
 		invalidate();
 	}
 
+	public void clear() {
+		startRecoringTime = 0;
+		finishTime = 0;
+		invalidate();
+	}
+
 	@Override
 	protected void onDraw(Canvas canvas) {
 		delta = isRecording ? System.currentTimeMillis() - startRecoringTime : finishTime - startRecoringTime;

@@ -99,6 +99,6 @@
     <string name="pref_mesh">Цвет линии</string>
     <string name="pref_curve">Координатная сетка</string>
     <string name="pref_style">Цвет фона</string>
-    <string name="pacient_directory">Создавать папку для каждого пациента</string>
-    <string name="new_pacient">ДоБАВИТЬ ПАЦИЕНТА</string>
+    <string name="pacient_directory">createFolderForPatient</string>
+    <string name="new_pacient">patientFolder</string>
 </resources>

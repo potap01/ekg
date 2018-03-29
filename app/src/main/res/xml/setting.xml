@@ -8,7 +8,7 @@
             android:key="@string/new_pacient"
             android:title="Новый пациент"
             android:summary="Регистрация нового пациента"
-            android:defaultValue=" "
+            android:defaultValue="default"
             android:dialogTitle="Введите имя пациента" />
 
         <CheckBoxPreference
