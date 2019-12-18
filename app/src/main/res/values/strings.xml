@@ -6,6 +6,17 @@
     <string name="record_time">00:00</string>
     <string name="title_activity_new_user">Выберите пациента</string>
 
+    <string name="bluetooth_on_off">Вкл./Выкл. Bluetooth</string>
+    <string name="bluetooth_off">Bluetooth выключен</string>
+    <string name="start_search">Начать поиск</string>
+    <string name="bluetooth_not_supported">Bluetooth не поддерживается</string>
+    <string name="stop_search">Остановить поиск</string>
+    <string name="disconnect">Отключиться</string>
+    <string name="led_red">Красный светодиод</string>
+    <string name="connecting">Соединение...</string>
+    <string name="please_wait">Подождите, пожалуйста...</string>
+    <string name="green_led">Зеленый светодиод</string>
+
     <!-- Strings related to login -->
     <string name="prompt_email">Email</string>
     <string name="prompt_password">Password (optional)</string>
@@ -78,7 +89,7 @@
         <item>3</item>
     </string-array>
 
-    <string-array name="multi_select_list_preference_default_value"/>
+    <string-array name="multi_select_list_preference_default_value" />
 
     <string name="pref_title_system_sync_settings">System sync settings</string>
 

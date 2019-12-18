@@ -14,8 +14,10 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.os.PersistableBundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
@@ -24,10 +26,19 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup.LayoutParams;
+import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+
 
 import com.androidplot.util.Redrawer;
 import com.androidplot.xy.AdvancedLineAndPointRenderer;
@@ -37,6 +48,7 @@ import com.androidplot.xy.XYPlot;
 import com.neurosky.thinkgear.TGDevice;
 import com.vgtu.ekg.diagram.ECGModel;
 import com.vgtu.ekg.util.PermissionUtil;
+import com.vgtu.ekg.view.ActivityTwo;
 import com.vgtu.ekg.view.TimerTextView;
 
 import java.io.BufferedOutputStream;
@@ -54,9 +66,31 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static android.content.ContentValues.TAG;
 
-public class MainActivity extends AppCompatActivity {
+    public class MainActivity extends AppCompatActivity implements OnClickListener {
 
-	private static final int REQUEST_CODE_STORAGE = 1;
+
+
+			Button btnActTwo;
+
+			/** Вызывается при первом создании действия. */
+
+
+
+			@Override
+			public void onClick(View v) {
+				switch (v.getId()) {
+					case R.id.btnActTwo:
+						// TODO Call second activity
+						Intent intent = new Intent(this, ActivityTwo.class);
+						startActivity(intent);
+						break;
+					default:
+						break;
+				}
+			}
+
+
+		private static final int REQUEST_CODE_STORAGE = 1;
 	private static final int RC_SETTINGS = 2;
 
 	// Объявление переменных
@@ -130,8 +164,21 @@ public class MainActivity extends AppCompatActivity {
 
 		xyPlotView = findViewById(R.id.plot);
 		initPlot();
+		btnActTwo = (Button) findViewById(R.id.btnActTwo);
+		btnActTwo.setOnClickListener(this);
 	}
-
+	public void onCLick(View v)
+	{
+		switch(v.getId())
+		{
+			case R.id.btnActTwo:
+				Intent intent = new Intent(this, ActivityTwo.class);
+				startActivity(intent);
+				break;
+			default:
+				break;
+		}
+	}
 	@Override
 	protected void onStop() {
 		super.onStop();
@@ -205,7 +252,7 @@ public class MainActivity extends AppCompatActivity {
 
 		//на случай, если график будет тормозить.
 		//нужно расскомментировать этот блок и закомментировать строку после блока.
-/*		currentTime = System.currentTimeMillis();
+		/*currentTime = System.currentTimeMillis();
 		if (lastUpdateTime == 0 || currentTime - lastUpdateTime > 25) {
 			lastUpdateTime = currentTime;
 			xyPlotView.getRenderer(AdvancedLineAndPointRenderer.class).setLatestIndex(ecgSeries.getLatestIndex());
@@ -337,7 +384,7 @@ public class MainActivity extends AppCompatActivity {
 	}
 
 	public byte[] byteArrayFromRaw(int value) {
-		value = value * 10 + 28000;
+		value = value + 28000;
 		return ByteBuffer.allocate(2).putShort((short) value).array();
 	}
 
@@ -476,15 +523,14 @@ public class MainActivity extends AppCompatActivity {
 					} else subjectContactQuality_cnt++;
 					break;
 
-// Вывод переменных их класса TGDevice.class
-
+                // Вывод переменных их класса TGDevice.class
 				// Не обработанные данные ЭКГ - RAW_DATA
 				case TGDevice.MSG_RAW_DATA:
 					int Raw_Value = (int) ((msg.arg1 * 18.3) / 128);
 					if (isRecording) {
 						unwritedRawValues.add(Raw_Value);
 					}
-					//Log.d("TAG ", "RAW " + Raw_Value);
+					Log.d("TAG ", "RAW " + Raw_Value);
 					updateChart(Raw_Value);
 					break;
 
@@ -688,5 +734,5 @@ public class MainActivity extends AppCompatActivity {
 		}
 	};
 
-}
 
+		}
